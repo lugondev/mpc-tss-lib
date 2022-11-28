@@ -25,8 +25,3 @@ RETURNING *;
 DELETE
 FROM emails
 WHERE id = $1;
-
--- name: GetEmailForContract :many
-SELECT *
-FROM emails_contract
-WHERE contract_id = $1;
