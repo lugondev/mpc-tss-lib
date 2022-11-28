@@ -1,0 +1,27 @@
+.idea
+*.iml
+out
+gen
+### Go template
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+
+tmp
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+build
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+
+# environment variables
+.env
+configuration.yml

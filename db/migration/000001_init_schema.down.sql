@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS shares;
+
+DROP TYPE IF EXISTS notification_status CASCADE;
