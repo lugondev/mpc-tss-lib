@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ambrosus/ambrosus-bridge/relay/pkg/mpc/fixtures"
-	"github.com/ambrosus/ambrosus-bridge/relay/pkg/mpc/networking/client"
-	"github.com/ambrosus/ambrosus-bridge/relay/pkg/mpc/networking/server"
-	"github.com/ambrosus/ambrosus-bridge/relay/pkg/mpc/tss_wrap"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/lugondev/mpc-tss-lib/pkg/mpc/fixtures"
+	"github.com/lugondev/mpc-tss-lib/pkg/mpc/networking/client"
+	"github.com/lugondev/mpc-tss-lib/pkg/mpc/networking/server"
+	"github.com/lugondev/mpc-tss-lib/pkg/mpc/tss_wrap"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 )

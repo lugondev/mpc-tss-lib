@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/ambrosus/ambrosus-bridge/relay/pkg/mpc/networking/common"
 	"github.com/gorilla/websocket"
+	"github.com/lugondev/mpc-tss-lib/pkg/mpc/networking/common"
 )
 
 var upgrader = websocket.Upgrader{
@@ -49,7 +49,7 @@ func (s *Server) registerConnection(w http.ResponseWriter, r *http.Request) {
 	connLogger.Info().Msg("s.operation: " + hex.EncodeToString(s.operation))
 	connLogger.Info().Msg("operation: " + hex.EncodeToString(operation))
 
-	if !bytes.Equal(s.operation, common.CenterOperation) {
+	if !bytes.Equal(s.operation, common.GatewayOperation) {
 		if bytes.Equal(operation, common.KeygenOperation) {
 			connLogger.Info().Msg("Client wants to start keygen")
 		} else {

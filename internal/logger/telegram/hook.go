@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ambrosus/ambrosus-bridge/relay/internal/logger"
+	"github.com/lugondev/mpc-tss-lib/internal/logger"
 	"github.com/rs/zerolog"
 )
 

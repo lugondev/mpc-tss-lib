@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ambrosus/ambrosus-bridge/relay/pkg/mpc/networking/common"
+	"github.com/lugondev/mpc-tss-lib/pkg/mpc/networking/common"
 )
 
 func (s *Server) makeNamedConnections(IDs []string) {
@@ -27,6 +27,7 @@ func (s *Server) waitForConnections(ctx context.Context) error {
 		if !s.isAllConnected() {
 			select {
 			case <-connChange.Done(): // wait for new connections
+				s.logger.Debug().Msg("Connection change")
 				connChange, s.connChangeNotify = context.WithCancel(context.Background()) // this ctx done, create a new one
 				continue
 			case <-ctx.Done():
@@ -66,8 +67,8 @@ func (s *Server) clientConnected(id string, conn *common.Conn) error {
 		return fmt.Errorf("invalid id")
 	}
 	if oldConn != nil {
-		//return fmt.Errorf("id already connected")
-		s.logger.Warn().Str("id", id).Msg("id already connected")
+		return fmt.Errorf("id already connected")
+		//s.logger.Warn().Str("id", id).Msg("id already connected")
 	}
 
 	s.connections[id] = conn

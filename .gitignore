@@ -24,4 +24,4 @@ build
 
 # environment variables
 .env
-configuration.yml
+configuration*.yml

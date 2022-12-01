@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+option go_package = "pb/";
+
+package pb;
+
+service MpcParty {
+  rpc RequestParty(EmptyParams) returns (RequestPartyResponse){}
+  rpc KeygenGenerator(KeygenGeneratorParams) returns (KeygenGeneratorResponse){}
+  rpc GetParties(GetPartiesParams) returns (GetPartiesResponse){}
+  rpc Sign(SignParams) returns (SignResponse){}
+  rpc Ping (EmptyParams) returns (Pong) {}
+}
+
+message EmptyParams {
+}
+
+message ReplyEmpty {
+}
+
+message GetPartiesParams {
+  string pubkey = 1;
+}
+
+message GetPartiesResponse {
+  string id = 1;
+  string pubkey = 2;
+}
+
+message SignParams {
+  string id = 1;
+  repeated string parties = 2;
+  bytes message = 3;
+  string pubkey = 4;
+}
+
+message SignResponse {
+  string id = 1;
+  string message = 2;
+  string signature = 3;
+}
+
+message KeygenGeneratorParams {
+  string id = 1;
+  repeated string ids = 2;
+}
+
+message KeygenGeneratorResponse {
+  string pubkey = 1;
+}
+
+message RequestPartyResponse {
+  string id = 1 ;
+}
+
+message Pong {
+  string message = 1;
+}

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/ambrosus/ambrosus-bridge/relay/pkg/mpc/networking/common"
-	"github.com/ambrosus/ambrosus-bridge/relay/pkg/mpc/tss_wrap"
+	"github.com/lugondev/mpc-tss-lib/pkg/mpc/networking/common"
+	"github.com/lugondev/mpc-tss-lib/pkg/mpc/tss_wrap"
 	"golang.org/x/sync/errgroup"
 )
 

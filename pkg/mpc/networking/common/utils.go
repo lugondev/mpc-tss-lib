@@ -3,11 +3,11 @@ package common
 import (
 	"context"
 
-	"github.com/ambrosus/ambrosus-bridge/relay/pkg/mpc/tss_wrap"
+	"github.com/lugondev/mpc-tss-lib/pkg/mpc/tss_wrap"
 )
 
 var (
-	CenterOperation    = []byte("center")
+	GatewayOperation   = []byte("gateway")
 	KeygenOperation    = []byte("keygen")
 	ReshareOperation   = []byte("reshare")
 	HeaderTssID        = "X-TSS-ID"

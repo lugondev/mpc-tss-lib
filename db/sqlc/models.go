@@ -8,8 +8,6 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"time"
-
-	"github.com/tabbed/pqtype"
 )
 
 type NotificationStatus string
@@ -77,11 +75,12 @@ type EmailsNotification struct {
 }
 
 type Share struct {
-	ID           int64                 `json:"id"`
-	Pubkey       string                `json:"pubkey"`
-	Data         pqtype.NullRawMessage `json:"data"`
-	Enable       bool                  `json:"enable"`
-	Notification NotificationStatus    `json:"notification"`
-	Address      string                `json:"address"`
-	CreatedAt    time.Time             `json:"created_at"`
+	ID           int64              `json:"id"`
+	PartyID      string             `json:"party_id"`
+	Pubkey       string             `json:"pubkey"`
+	Data         []byte             `json:"data"`
+	Enable       bool               `json:"enable"`
+	Notification NotificationStatus `json:"notification"`
+	Address      string             `json:"address"`
+	CreatedAt    time.Time          `json:"created_at"`
 }

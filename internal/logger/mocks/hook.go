@@ -7,7 +7,7 @@ package mock_logger
 import (
 	reflect "reflect"
 
-	logger "github.com/ambrosus/ambrosus-bridge/relay/internal/logger"
+	logger "github.com/lugondev/mpc-tss-lib/internal/logger"
 	gomock "github.com/golang/mock/gomock"
 )
 

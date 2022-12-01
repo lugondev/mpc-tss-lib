@@ -1,6 +1,6 @@
 SHELL=/bin/bash
 
-.PHONY: all build deploy clean dev build-linux
+.PHONY: all build deploy clean dev build-linux proto
 
 include .env
 
@@ -39,3 +39,10 @@ migrate-down:
 
 sqlc:
 	sqlc generate
+
+proto:
+	rm -f pb/*.go
+	protoc --proto_path=proto --go_out=pb --go_opt=paths=source_relative \
+	--go-grpc_out=pb --go-grpc_opt=paths=source_relative \
+	--descriptor_set_out descriptor.pb \
+	proto/*.proto

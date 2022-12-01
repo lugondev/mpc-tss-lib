@@ -7,104 +7,146 @@ package db
 
 import (
 	"context"
-
-	"github.com/tabbed/pqtype"
 )
 
 const createShare = `-- name: CreateShare :one
-INSERT INTO shares ( pubkey, data, enable, notification, address)
-VALUES ($1, $2, true, 'enable', LOWER($3)) RETURNING id, pubkey, data, enable, notification, address, created_at
+INSERT INTO shares (pubkey, data, address, party_id)
+VALUES ($1, $2, LOWER($4), $3)
+RETURNING pubkey, enable, notification, address, party_id
 `
 
 type CreateShareParams struct {
-	Pubkey  string                `json:"pubkey"`
-	Data    pqtype.NullRawMessage `json:"data"`
-	Address string                `json:"address"`
+	Pubkey  string `json:"pubkey"`
+	Data    []byte `json:"data"`
+	PartyID string `json:"party_id"`
+	Address string `json:"address"`
 }
 
-func (q *Queries) CreateShare(ctx context.Context, arg CreateShareParams) (Share, error) {
-	row := q.db.QueryRowContext(ctx, createShare, arg.Pubkey, arg.Data, arg.Address)
-	var i Share
+type CreateShareRow struct {
+	Pubkey       string             `json:"pubkey"`
+	Enable       bool               `json:"enable"`
+	Notification NotificationStatus `json:"notification"`
+	Address      string             `json:"address"`
+	PartyID      string             `json:"party_id"`
+}
+
+func (q *Queries) CreateShare(ctx context.Context, arg CreateShareParams) (CreateShareRow, error) {
+	row := q.db.QueryRowContext(ctx, createShare,
+		arg.Pubkey,
+		arg.Data,
+		arg.PartyID,
+		arg.Address,
+	)
+	var i CreateShareRow
 	err := row.Scan(
-		&i.ID,
 		&i.Pubkey,
-		&i.Data,
 		&i.Enable,
 		&i.Notification,
 		&i.Address,
-		&i.CreatedAt,
+		&i.PartyID,
 	)
 	return i, err
 }
 
-const getShare = `-- name: GetShare :one
-SELECT id, pubkey, data, enable, notification, address, created_at
+const getPartyIdByPubkey = `-- name: GetPartyIdByPubkey :one
+SELECT pubkey,  party_id
 FROM shares
-WHERE id = $1 LIMIT 1
+WHERE LOWER(pubkey) = LOWER($1)
+LIMIT 1
 `
 
-func (q *Queries) GetShare(ctx context.Context, id int64) (Share, error) {
+type GetPartyIdByPubkeyRow struct {
+	Pubkey  string `json:"pubkey"`
+	PartyID string `json:"party_id"`
+}
+
+func (q *Queries) GetPartyIdByPubkey(ctx context.Context, pubkey string) (GetPartyIdByPubkeyRow, error) {
+	row := q.db.QueryRowContext(ctx, getPartyIdByPubkey, pubkey)
+	var i GetPartyIdByPubkeyRow
+	err := row.Scan(&i.Pubkey, &i.PartyID)
+	return i, err
+}
+
+const getShare = `-- name: GetShare :one
+SELECT pubkey, enable, notification, address, party_id
+FROM shares
+WHERE id = $1
+LIMIT 1
+`
+
+type GetShareRow struct {
+	Pubkey       string             `json:"pubkey"`
+	Enable       bool               `json:"enable"`
+	Notification NotificationStatus `json:"notification"`
+	Address      string             `json:"address"`
+	PartyID      string             `json:"party_id"`
+}
+
+func (q *Queries) GetShare(ctx context.Context, id int64) (GetShareRow, error) {
 	row := q.db.QueryRowContext(ctx, getShare, id)
-	var i Share
+	var i GetShareRow
 	err := row.Scan(
-		&i.ID,
 		&i.Pubkey,
-		&i.Data,
 		&i.Enable,
 		&i.Notification,
 		&i.Address,
-		&i.CreatedAt,
+		&i.PartyID,
 	)
 	return i, err
 }
 
 const getShareByAddress = `-- name: GetShareByAddress :one
-SELECT id, pubkey, data, enable, notification, address, created_at
+SELECT pubkey, enable, notification, address, party_id
 FROM shares
-WHERE LOWER(address) = LOWER($1) LIMIT 1
+WHERE LOWER(address) = LOWER($1)
+LIMIT 1
 `
 
-func (q *Queries) GetShareByAddress(ctx context.Context, address string) (Share, error) {
+type GetShareByAddressRow struct {
+	Pubkey       string             `json:"pubkey"`
+	Enable       bool               `json:"enable"`
+	Notification NotificationStatus `json:"notification"`
+	Address      string             `json:"address"`
+	PartyID      string             `json:"party_id"`
+}
+
+func (q *Queries) GetShareByAddress(ctx context.Context, address string) (GetShareByAddressRow, error) {
 	row := q.db.QueryRowContext(ctx, getShareByAddress, address)
-	var i Share
+	var i GetShareByAddressRow
 	err := row.Scan(
-		&i.ID,
 		&i.Pubkey,
-		&i.Data,
 		&i.Enable,
 		&i.Notification,
 		&i.Address,
-		&i.CreatedAt,
+		&i.PartyID,
 	)
 	return i, err
 }
 
-const getShareByPubkey = `-- name: GetShareByPubkey :one
-SELECT id, pubkey, data, enable, notification, address, created_at
+const getShareByID = `-- name: GetShareByID :one
+SELECT pubkey, data
 FROM shares
-WHERE LOWER(pubkey) = LOWER($1) LIMIT 1
+WHERE party_id = $1
+LIMIT 1
 `
 
-func (q *Queries) GetShareByPubkey(ctx context.Context, pubkey string) (Share, error) {
-	row := q.db.QueryRowContext(ctx, getShareByPubkey, pubkey)
-	var i Share
-	err := row.Scan(
-		&i.ID,
-		&i.Pubkey,
-		&i.Data,
-		&i.Enable,
-		&i.Notification,
-		&i.Address,
-		&i.CreatedAt,
-	)
+type GetShareByIDRow struct {
+	Pubkey string `json:"pubkey"`
+	Data   []byte `json:"data"`
+}
+
+func (q *Queries) GetShareByID(ctx context.Context, partyID string) (GetShareByIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getShareByID, partyID)
+	var i GetShareByIDRow
+	err := row.Scan(&i.Pubkey, &i.Data)
 	return i, err
 }
 
 const listShare = `-- name: ListShare :many
-SELECT id, pubkey, data, enable, notification, address, created_at
+SELECT pubkey, enable, notification, address
 FROM shares
-ORDER BY id LIMIT $1
-OFFSET $2
+ORDER BY id
+LIMIT $1 OFFSET $2
 `
 
 type ListShareParams struct {
@@ -112,23 +154,27 @@ type ListShareParams struct {
 	Offset int32 `json:"offset"`
 }
 
-func (q *Queries) ListShare(ctx context.Context, arg ListShareParams) ([]Share, error) {
+type ListShareRow struct {
+	Pubkey       string             `json:"pubkey"`
+	Enable       bool               `json:"enable"`
+	Notification NotificationStatus `json:"notification"`
+	Address      string             `json:"address"`
+}
+
+func (q *Queries) ListShare(ctx context.Context, arg ListShareParams) ([]ListShareRow, error) {
 	rows, err := q.db.QueryContext(ctx, listShare, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Share{}
+	items := []ListShareRow{}
 	for rows.Next() {
-		var i Share
+		var i ListShareRow
 		if err := rows.Scan(
-			&i.ID,
 			&i.Pubkey,
-			&i.Data,
 			&i.Enable,
 			&i.Notification,
 			&i.Address,
-			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}

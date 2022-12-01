@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ambrosus/ambrosus-bridge/relay/internal/logger"
-	"github.com/ambrosus/ambrosus-bridge/relay/internal/logger/telegram"
+	"github.com/lugondev/mpc-tss-lib/internal/logger"
+	"github.com/lugondev/mpc-tss-lib/internal/logger/telegram"
 	zerolog "github.com/rs/zerolog/log"
 )
 

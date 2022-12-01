@@ -7,8 +7,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ambrosus/ambrosus-bridge/relay/pkg/mpc/fixtures"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/lugondev/mpc-tss-lib/pkg/mpc/fixtures"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 )
@@ -118,7 +118,7 @@ func TestReshare(t *testing.T) {
 	// peer 0 lost his share
 	delete(peers, "0") // delete from networking
 	oldPartyIDs := []string{"1", "2", "3", "4", "backup"}
-	newPartyIDs := []string{"0a", "1a", "2a", "3a", "4a", "backup_a"}
+	newPartyIDs := []string{"0a", "1a", "2a", "3a", "4a", "5a", "backup_a"}
 
 	// add new party to peers map
 	for id, peer := range createPeers(newPartyIDs, 5) {

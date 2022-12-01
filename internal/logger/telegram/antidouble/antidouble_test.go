@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ambrosus/ambrosus-bridge/relay/internal/logger"
-	"github.com/ambrosus/ambrosus-bridge/relay/internal/logger/telegram"
-	mocks_telegram "github.com/ambrosus/ambrosus-bridge/relay/internal/logger/telegram/mocks"
+	"github.com/lugondev/mpc-tss-lib/internal/logger"
+	"github.com/lugondev/mpc-tss-lib/internal/logger/telegram"
+	mocks_telegram "github.com/lugondev/mpc-tss-lib/internal/logger/telegram/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )

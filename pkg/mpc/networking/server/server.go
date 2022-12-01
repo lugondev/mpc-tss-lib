@@ -7,9 +7,9 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"sync"
 
-	"github.com/ambrosus/ambrosus-bridge/relay/pkg/mpc/networking/common"
-	"github.com/ambrosus/ambrosus-bridge/relay/pkg/mpc/tss_wrap"
 	ec "github.com/ethereum/go-ethereum/common"
+	"github.com/lugondev/mpc-tss-lib/pkg/mpc/networking/common"
+	"github.com/lugondev/mpc-tss-lib/pkg/mpc/tss_wrap"
 	"github.com/rs/zerolog"
 )
 
@@ -38,12 +38,21 @@ func NewServer(tss *tss_wrap.Mpc, accessToken string, logger *zerolog.Logger) *S
 		accessToken: accessToken,
 	}
 	if tss == nil {
-		s.operation = common.CenterOperation
+		s.operation = common.GatewayOperation
 	}
 	return s
 }
 
-// todo if threshold < partyLen, do we need to provide current party or use full party? client doesn't know about current part of party
+func (s *Server) DoOperation(ctx context.Context) error {
+	s.logger.Info().Msg("Do operation")
+
+	_, err := s.doOperation(ctx,
+		func(ctx context.Context, inCh <-chan []byte, outCh chan<- *tss_wrap.Message) ([]byte, error) {
+			return s.fullMsg, nil
+		},
+	)
+	return err
+}
 
 func (s *Server) Sign(ctx context.Context, partyIDs []string, msg []byte) ([]byte, error) {
 	s.logger.Info().Msg("Start sign operation")
@@ -225,6 +234,20 @@ func (s *Server) startOperation(msg []byte, waitForIDs []string) error {
 	s.makeNamedConnections(waitForIDs)
 
 	return nil
+}
+
+func (s *Server) StartOperation(ctx context.Context, waitForIDs []string) error {
+	err := s.startOperation([]byte{}, waitForIDs)
+	if err != nil {
+		return err
+	}
+	_, err = s.doOperation(ctx,
+		func(ctx context.Context, inCh <-chan []byte, outCh chan<- *tss_wrap.Message) ([]byte, error) {
+			return s.fullMsg, nil
+		},
+	)
+
+	return err
 }
 
 func (s *Server) stopOperation() {

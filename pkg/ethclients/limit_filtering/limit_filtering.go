@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"time"
 
-	common_ethclient "github.com/ambrosus/ambrosus-bridge/relay/pkg/ethclients/common"
+	common_ethclient "github.com/lugondev/mpc-tss-lib/pkg/ethclients/common"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"

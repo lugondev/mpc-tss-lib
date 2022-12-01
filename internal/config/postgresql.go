@@ -3,7 +3,7 @@ package config
 import (
 	"database/sql"
 	"fmt"
-	"github.com/ambrosus/ambrosus-bridge/relay/db"
+	"github.com/lugondev/mpc-tss-lib/db"
 	_ "github.com/lib/pq"
 	"github.com/spf13/viper"
 	"time"

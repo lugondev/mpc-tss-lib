@@ -1,24 +1,34 @@
 -- name: CreateShare :one
-INSERT INTO shares ( pubkey, data, enable, notification, address)
-VALUES ($1, $2, true, 'enable', LOWER(sqlc.arg('address'))) RETURNING *;
+INSERT INTO shares (pubkey, data, address, party_id)
+VALUES ($1, $2, LOWER(sqlc.arg('address')), $3)
+RETURNING pubkey, enable, notification, address, party_id;
 
 -- name: GetShare :one
-SELECT *
+SELECT pubkey, enable, notification, address, party_id
 FROM shares
-WHERE id = $1 LIMIT 1;
+WHERE id = $1
+LIMIT 1;
 
 -- name: GetShareByAddress :one
-SELECT *
+SELECT pubkey, enable, notification, address, party_id
 FROM shares
-WHERE LOWER(address) = LOWER(sqlc.arg('address')) LIMIT 1;
+WHERE LOWER(address) = LOWER(sqlc.arg('address'))
+LIMIT 1;
 
--- name: GetShareByPubkey :one
-SELECT *
+-- name: GetShareByID :one
+SELECT pubkey, data
 FROM shares
-WHERE LOWER(pubkey) = LOWER(sqlc.arg('pubkey')) LIMIT 1;
+WHERE party_id = $1
+LIMIT 1;
+
+-- name: GetPartyIdByPubkey :one
+SELECT pubkey, party_id
+FROM shares
+WHERE LOWER(pubkey) = LOWER(sqlc.arg('pubkey'))
+LIMIT 1;
 
 -- name: ListShare :many
-SELECT *
+SELECT pubkey, enable, notification, address
 FROM shares
-ORDER BY id LIMIT $1
-OFFSET $2;
+ORDER BY id
+LIMIT $1 OFFSET $2;

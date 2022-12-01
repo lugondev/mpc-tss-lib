@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	db "github.com/ambrosus/ambrosus-bridge/relay/db/sqlc"
+	db "github.com/lugondev/mpc-tss-lib/db/sqlc"
 )
 
 // Store defines all functions to execute db queries and transactions

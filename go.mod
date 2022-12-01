@@ -1,4 +1,4 @@
-module github.com/ambrosus/ambrosus-bridge/relay
+module github.com/lugondev/mpc-tss-lib
 
 go 1.18
 
@@ -6,15 +6,20 @@ require (
 	github.com/bnb-chain/tss-lib v1.3.5
 	github.com/ethereum/go-ethereum v1.10.13
 	github.com/golang/mock v1.4.4
+	github.com/google/uuid v1.3.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/labstack/echo/v4 v4.9.1
 	github.com/lib/pq v1.10.7
 	github.com/rs/zerolog v1.26.1
 	github.com/spf13/viper v1.10.1
+	github.com/status-im/keycard-go v0.0.0-20190316090335-8537d3370df4
 	github.com/stretchr/testify v1.7.0
+	github.com/thoas/go-funk v0.9.2
 	golang.org/x/exp v0.0.0-20220428152302-39d4317da171
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/time v0.2.0
+	google.golang.org/grpc v1.51.0
+	google.golang.org/protobuf v1.28.1
 )
 
 require (
@@ -30,8 +35,8 @@ require (
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.7 // indirect
-	github.com/google/uuid v1.1.5 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-multierror v1.0.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
@@ -63,7 +68,7 @@ require (
 	golang.org/x/net v0.2.0 // indirect
 	golang.org/x/sys v0.2.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
-	google.golang.org/protobuf v1.27.1 // indirect
+	google.golang.org/genproto v0.0.0-20221118155620-16455021b5e6 // indirect
 	gopkg.in/ini.v1 v1.66.2 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
