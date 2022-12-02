@@ -87,7 +87,7 @@ func StartGrpcClient(port int64, hostUrl string, sqlStore *db.SQLStore) {
 		sqlStore: sqlStore,
 	})
 
-	logger.Info().Msgf("server listening", lis.Addr())
+	logger.Info().Msgf("server listening: %s", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		logger.Fatal().Err(err).Msg("failed to serve")
 	}

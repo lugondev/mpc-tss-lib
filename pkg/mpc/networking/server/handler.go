@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"net/http"
-
 	"github.com/gorilla/websocket"
 	"github.com/lugondev/mpc-tss-lib/pkg/mpc/networking/common"
+	"net/http"
 )
 
 var upgrader = websocket.Upgrader{
@@ -46,8 +45,6 @@ func (s *Server) registerConnection(w http.ResponseWriter, r *http.Request) {
 	}
 
 	connLogger := s.logger.With().Str("clientID", clientID).Logger()
-	connLogger.Info().Msg("s.operation: " + hex.EncodeToString(s.operation))
-	connLogger.Info().Msg("operation: " + hex.EncodeToString(operation))
 
 	if !bytes.Equal(s.operation, common.GatewayOperation) {
 		if bytes.Equal(operation, common.KeygenOperation) {

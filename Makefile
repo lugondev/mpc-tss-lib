@@ -1,6 +1,6 @@
 SHELL=/bin/bash
 
-.PHONY: all build deploy clean dev build-linux proto
+.PHONY: all build deploy clean dev proto
 
 include .env
 
@@ -10,12 +10,20 @@ GIT_COMMIT_LOG := $(shell git log --oneline -1 HEAD)
 
 all: build-linux deploy clean
 
-build-linux:
+build-server:
 	echo "current commit: ${GIT_COMMIT_LOG}"
 	go mod tidy
-	env GOOS=linux GOARCH=amd64 go build -v -o ./build/server -ldflags "-X 'main.GitCommitLog=${GIT_COMMIT_LOG}'"
+	env GOOS=linux GOARCH=amd64 go build -v -o ./build/mpc_server -ldflags "-X 'main.GitCommitLog=${GIT_COMMIT_LOG}'" ./cmd/mpc_server
 
-deploy: clean build-linux
+build-client:
+	echo "current commit: ${GIT_COMMIT_LOG}"
+	go mod tidy
+	env GOOS=linux GOARCH=amd64 go build -v -o ./build/mpc_client -ldflags "-X 'main.GitCommitLog=${GIT_COMMIT_LOG}'" ./cmd/mpc_client
+
+deploy-server: clean build-server
+	gcloud run deploy --source . --region asia-southeast1 --project ${GCP_PROJECT}; \
+
+deploy-client: clean build-client
 	gcloud run deploy --source . --region asia-southeast1 --project ${GCP_PROJECT}; \
 
 clean:

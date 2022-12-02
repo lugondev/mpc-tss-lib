@@ -12,7 +12,6 @@ require (
 	github.com/lib/pq v1.10.7
 	github.com/rs/zerolog v1.26.1
 	github.com/spf13/viper v1.10.1
-	github.com/status-im/keycard-go v0.0.0-20190316090335-8537d3370df4
 	github.com/stretchr/testify v1.7.0
 	github.com/thoas/go-funk v0.9.2
 	golang.org/x/exp v0.0.0-20220428152302-39d4317da171

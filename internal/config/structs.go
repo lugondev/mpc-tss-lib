@@ -41,10 +41,7 @@ type DBConfig struct {
 }
 
 type ServerConfig struct {
-	Port struct {
-		Http int64 `json:"http"`
-		Ws   int64 `json:"ws"`
-	} `json:"port"`
+	Port    int64    `json:"port"`
 	Clients []string `json:"clients"`
 }
 
@@ -53,6 +50,7 @@ type GrpcConfig struct {
 }
 
 type Config struct {
+	DB         DBConfig     `yml:"db"`
 	AuthConfig AuthConfig   `yml:"auth"`
 	Server     ServerConfig `yml:"server"`
 	Grpc       GrpcConfig   `yml:"grpc"`

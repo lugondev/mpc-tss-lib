@@ -3,29 +3,13 @@ package config
 import (
 	"database/sql"
 	"fmt"
-	"github.com/lugondev/mpc-tss-lib/db"
 	_ "github.com/lib/pq"
-	"github.com/spf13/viper"
+	"github.com/lugondev/mpc-tss-lib/db"
 	"time"
 )
 
-func NewDB(v *viper.Viper) (*db.SQLStore, error) {
-	var config DBConfig
-	var postgresConfig PostgresConfig
-	if err := v.UnmarshalKey("db", &config); err != nil {
-		return nil, err
-	}
-	var dsn string
-	fmt.Println("Using DB profile:", config.Profile)
-	if config.Profile != "" {
-		if err := v.UnmarshalKey(fmt.Sprintf("db.%s", config.Profile), &postgresConfig); err != nil {
-			panic(err)
-		}
-		dsn = getDSN(postgresConfig)
-	} else {
-		dsn = getDSN(config.Postgresql)
-	}
-
+func NewDB(postgresConfig PostgresConfig) (*db.SQLStore, error) {
+	dsn := getDSN(postgresConfig)
 	openDB, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return nil, err

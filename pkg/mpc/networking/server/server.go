@@ -43,17 +43,6 @@ func NewServer(tss *tss_wrap.Mpc, accessToken string, logger *zerolog.Logger) *S
 	return s
 }
 
-func (s *Server) DoOperation(ctx context.Context) error {
-	s.logger.Info().Msg("Do operation")
-
-	_, err := s.doOperation(ctx,
-		func(ctx context.Context, inCh <-chan []byte, outCh chan<- *tss_wrap.Message) ([]byte, error) {
-			return s.fullMsg, nil
-		},
-	)
-	return err
-}
-
 func (s *Server) Sign(ctx context.Context, partyIDs []string, msg []byte) ([]byte, error) {
 	s.logger.Info().Msg("Start sign operation")
 

@@ -19,11 +19,11 @@ func main() {
 	fmt.Println("Gateway url: ", *flagUrl)
 	fmt.Println("=======================================================")
 
-	cfg, v, err := config.LoadConfig(flagConfigPath)
+	cfg, err := config.LoadConfig(flagConfigPath)
 	if err != nil {
 		log.Fatal(err)
 	}
-	sqlStore, err := config.NewDB(v)
+	sqlStore, err := config.NewDB(cfg.DB.Postgresql)
 	if err != nil {
 		log.Fatal(err)
 	}

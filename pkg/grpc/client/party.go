@@ -1,17 +1,37 @@
 package grpc_client
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"github.com/lugondev/mpc-tss-lib/pb"
 	"github.com/thoas/go-funk"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"strings"
 	"sync"
 )
 
 func CreateClientConnections(clients []string) []*grpc.ClientConn {
+	systemRoots, err := x509.SystemCertPool()
+	if err != nil {
+		logger.Error().Err(err).Msg("failed to load system roots")
+		return []*grpc.ClientConn{}
+	}
+	cred := credentials.NewTLS(&tls.Config{
+		RootCAs: systemRoots,
+	})
+	var opts []grpc.DialOption
+	opts = append(opts, grpc.WithTransportCredentials(cred))
 	connections := funk.Map(clients, func(clientHost string) *grpc.ClientConn {
-		conn, err := grpc.Dial(clientHost, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		grpcOpts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
+		if !strings.Contains(clientHost, "localhost") &&
+			!strings.Contains(clientHost, "0.0.0.0") &&
+			!strings.Contains(clientHost, "127.0.0.1") {
+			grpcOpts = opts
+		}
+		conn, err := grpc.Dial(clientHost, grpcOpts...)
 		if err != nil {
 			logger.Error().Err(err).Msgf("failed to connect: %s", clientHost)
 			return nil
@@ -83,7 +103,7 @@ func CallClientGRPCs[K comparable](clients []string, callToClient func(pb.MpcPar
 				logger.Debug().Msgf("result: %v", r)
 				results[index] = r
 			} else {
-				logger.Error().Err(err).Msgf("failed to call client %d", clients[index])
+				logger.Error().Err(err).Msgf("failed to call client %s", clients[index])
 			}
 			wg.Done()
 		}(conn, i)

@@ -1,0 +1,7 @@
+{
+  "port": 8080,
+  "clients": [
+    "mpc-client-01-jhxvtoeu7q-as.a.run.app:443",
+    "mpc-client-02-jhxvtoeu7q-as.a.run.app:443"
+  ]
+}

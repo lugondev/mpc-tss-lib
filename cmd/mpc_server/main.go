@@ -24,20 +24,23 @@ func main() {
 	flagAccessToken := flag.String("accessToken", "", "url to which a client will connect")
 	flag.Parse()
 
-	cfg, _, err := config.LoadConfig(flagConfigPath)
+	cfg, err := config.LoadConfig(flagConfigPath)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to LoadConfig")
 	}
 	fmt.Println("=======================================================")
 	fmt.Println("You are about to Gateway the MPC Server")
-	fmt.Println("HTTP Port: ", cfg.Server.Port.Http)
-	fmt.Println("WS Port: ", cfg.Server.Port.Ws)
+	fmt.Println("Server Port: ", cfg.Server.Port)
 	for i, client := range cfg.Server.Clients {
 		fmt.Println(fmt.Sprintf("Client %d: %s", i+1, client))
 	}
 	fmt.Println("=======================================================")
 
-	netOperation := createGatewayNetworking(fmt.Sprintf(":%d", cfg.Server.Port.Ws), *flagAccessToken)
+	createNetOperation(cfg.Server.Port, cfg, *flagAccessToken)
+}
+
+func createNetOperation(port int64, cfg *config.Config, accessToken string) {
+	netOperation := server.NewServer(nil, accessToken, &logger)
 
 	e := echo.New()
 	// Middleware
@@ -143,19 +146,18 @@ func main() {
 		})
 	})
 
-	if err := e.Start(fmt.Sprintf(":%d", cfg.Server.Port.Http)); err != nil {
-		logger.Fatal().Err(err)
+	e.GET("/", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"message": "Hello, World!",
+		})
+	})
+
+	e.GET("/ws", func(c echo.Context) error {
+		netOperation.ServeHTTP(c.Response(), c.Request())
+		return nil
+	})
+
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), e); err != nil {
+		logger.Fatal().Err(err).Msg("ListenAndServe")
 	}
-}
-
-func createGatewayNetworking(hostUrl string, accessToken string) *server.Server {
-	server_ := server.NewServer(nil, accessToken, &logger)
-
-	go func() {
-		err := http.ListenAndServe(hostUrl, server_)
-		if err != nil {
-			logger.Fatal().Err(err).Msg("ListenAndServe")
-		}
-	}()
-	return server_
 }

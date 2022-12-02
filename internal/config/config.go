@@ -9,30 +9,41 @@ import (
 	"github.com/spf13/viper"
 )
 
-const defaultConfigPath string = "configuration"
+const (
+	defaultConfigPath string = "configuration"
+	EnvPrefix         string = "MPC"
+)
 
-func LoadConfig(configPath *string) (*Config, *viper.Viper, error) {
+func LoadConfig(configPath *string) (*Config, error) {
 	log.Debug().Msg("Loading config...")
 
 	v, err := readConfigYML(configPath)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	serverCfg, err := LoadServerConfig()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if serverCfg == nil {
-		return nil, nil, fmt.Errorf("cannot load server config")
+		return nil, fmt.Errorf("cannot load server config")
 	}
 
 	var cfg Config
 	if err = v.Unmarshal(&cfg); err != nil {
-		return nil, nil, fmt.Errorf("unmarshal cfg: %w", err)
+		return nil, fmt.Errorf("unmarshal cfg: %w", err)
+	}
+	var postgresConfig PostgresConfig
+	if cfg.DB.Profile != "" {
+		log.Debug().Msgf("Using DB profile: %s", cfg.DB.Profile)
+		if err := v.UnmarshalKey(fmt.Sprintf("db.%s", cfg.DB.Profile), &postgresConfig); err != nil {
+			panic(err)
+		}
+		cfg.DB.Postgresql = postgresConfig
 	}
 
 	cfg.Server = *serverCfg
-	return &cfg, v, nil
+	return &cfg, nil
 }
 
 func LoadServerConfig() (*ServerConfig, error) {
@@ -60,8 +71,9 @@ func readConfigYML(configPath *string) (*viper.Viper, error) {
 	}
 	v.AddConfigPath("./")
 
-	v.AutomaticEnv()
+	v.SetEnvPrefix(EnvPrefix)
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
 
 	if err := v.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("read cfg: %w", err)
