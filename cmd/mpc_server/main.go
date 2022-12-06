@@ -20,6 +20,8 @@ import (
 
 var logger = zerolog.Logger
 
+const MessageResponse = "MPC Server"
+
 func main() {
 	flagConfigPath := flag.String("config", "configuration.yml", "config yml path file")
 	flagAccessToken := flag.String("accessToken", "", "url to which a client will connect")
@@ -96,7 +98,7 @@ func createNetOperation(port int64, cfg *config.Config, accessToken string) {
 		}
 
 		return c.JSON(http.StatusOK, map[string]interface{}{
-			"message":    "Hello, World!",
+			"message":    MessageResponse,
 			"signatures": signatures,
 		})
 	})
@@ -124,7 +126,7 @@ func createNetOperation(port int64, cfg *config.Config, accessToken string) {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 		return c.JSON(http.StatusOK, map[string]interface{}{
-			"message":    "Hello, World!",
+			"message":    MessageResponse,
 			"parties":    partyIDs,
 			"publicKeys": publicKeys,
 		})
@@ -140,7 +142,7 @@ func createNetOperation(port int64, cfg *config.Config, accessToken string) {
 		}
 
 		return c.JSON(http.StatusOK, map[string]interface{}{
-			"message": "Hello, World!",
+			"message": MessageResponse,
 			"parties": funk.Filter(parties, func(p *pb.GetPartyResponse) bool {
 				return p != nil
 			}),
@@ -161,14 +163,14 @@ func createNetOperation(port int64, cfg *config.Config, accessToken string) {
 		}
 
 		return c.JSON(http.StatusOK, map[string]interface{}{
-			"message": "Hello, World!",
+			"message": MessageResponse,
 			"parties": parties,
 		})
 	})
 
 	e.GET("/", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]interface{}{
-			"message": "Hello, World!",
+			"message": MessageResponse,
 		})
 	})
 
