@@ -49,7 +49,7 @@ func (q *Queries) CreateShare(ctx context.Context, arg CreateShareParams) (Creat
 }
 
 const getPartyIdByPubkey = `-- name: GetPartyIdByPubkey :one
-SELECT pubkey,  party_id
+SELECT pubkey, party_id
 FROM shares
 WHERE LOWER(pubkey) = LOWER($1)
 LIMIT 1
@@ -143,26 +143,21 @@ func (q *Queries) GetShareByID(ctx context.Context, partyID string) (GetShareByI
 }
 
 const listShare = `-- name: ListShare :many
-SELECT pubkey, enable, notification, address
+SELECT pubkey, enable, notification, address, party_id
 FROM shares
 ORDER BY id
-LIMIT $1 OFFSET $2
 `
-
-type ListShareParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
-}
 
 type ListShareRow struct {
 	Pubkey       string             `json:"pubkey"`
 	Enable       bool               `json:"enable"`
 	Notification NotificationStatus `json:"notification"`
 	Address      string             `json:"address"`
+	PartyID      string             `json:"party_id"`
 }
 
-func (q *Queries) ListShare(ctx context.Context, arg ListShareParams) ([]ListShareRow, error) {
-	rows, err := q.db.QueryContext(ctx, listShare, arg.Limit, arg.Offset)
+func (q *Queries) ListShare(ctx context.Context) ([]ListShareRow, error) {
+	rows, err := q.db.QueryContext(ctx, listShare)
 	if err != nil {
 		return nil, err
 	}
@@ -175,6 +170,7 @@ func (q *Queries) ListShare(ctx context.Context, arg ListShareParams) ([]ListSha
 			&i.Enable,
 			&i.Notification,
 			&i.Address,
+			&i.PartyID,
 		); err != nil {
 			return nil, err
 		}

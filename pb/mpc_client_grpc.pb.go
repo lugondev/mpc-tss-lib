@@ -24,6 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 type MpcPartyClient interface {
 	RequestParty(ctx context.Context, in *EmptyParams, opts ...grpc.CallOption) (*RequestPartyResponse, error)
 	KeygenGenerator(ctx context.Context, in *KeygenGeneratorParams, opts ...grpc.CallOption) (*KeygenGeneratorResponse, error)
+	GetParty(ctx context.Context, in *GetPartyParams, opts ...grpc.CallOption) (*GetPartyResponse, error)
 	GetParties(ctx context.Context, in *GetPartiesParams, opts ...grpc.CallOption) (*GetPartiesResponse, error)
 	Sign(ctx context.Context, in *SignParams, opts ...grpc.CallOption) (*SignResponse, error)
 	Ping(ctx context.Context, in *EmptyParams, opts ...grpc.CallOption) (*Pong, error)
@@ -49,6 +50,15 @@ func (c *mpcPartyClient) RequestParty(ctx context.Context, in *EmptyParams, opts
 func (c *mpcPartyClient) KeygenGenerator(ctx context.Context, in *KeygenGeneratorParams, opts ...grpc.CallOption) (*KeygenGeneratorResponse, error) {
 	out := new(KeygenGeneratorResponse)
 	err := c.cc.Invoke(ctx, "/pb.MpcParty/KeygenGenerator", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mpcPartyClient) GetParty(ctx context.Context, in *GetPartyParams, opts ...grpc.CallOption) (*GetPartyResponse, error) {
+	out := new(GetPartyResponse)
+	err := c.cc.Invoke(ctx, "/pb.MpcParty/GetParty", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -88,6 +98,7 @@ func (c *mpcPartyClient) Ping(ctx context.Context, in *EmptyParams, opts ...grpc
 type MpcPartyServer interface {
 	RequestParty(context.Context, *EmptyParams) (*RequestPartyResponse, error)
 	KeygenGenerator(context.Context, *KeygenGeneratorParams) (*KeygenGeneratorResponse, error)
+	GetParty(context.Context, *GetPartyParams) (*GetPartyResponse, error)
 	GetParties(context.Context, *GetPartiesParams) (*GetPartiesResponse, error)
 	Sign(context.Context, *SignParams) (*SignResponse, error)
 	Ping(context.Context, *EmptyParams) (*Pong, error)
@@ -103,6 +114,9 @@ func (UnimplementedMpcPartyServer) RequestParty(context.Context, *EmptyParams) (
 }
 func (UnimplementedMpcPartyServer) KeygenGenerator(context.Context, *KeygenGeneratorParams) (*KeygenGeneratorResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method KeygenGenerator not implemented")
+}
+func (UnimplementedMpcPartyServer) GetParty(context.Context, *GetPartyParams) (*GetPartyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetParty not implemented")
 }
 func (UnimplementedMpcPartyServer) GetParties(context.Context, *GetPartiesParams) (*GetPartiesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetParties not implemented")
@@ -158,6 +172,24 @@ func _MpcParty_KeygenGenerator_Handler(srv interface{}, ctx context.Context, dec
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MpcPartyServer).KeygenGenerator(ctx, req.(*KeygenGeneratorParams))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MpcParty_GetParty_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPartyParams)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MpcPartyServer).GetParty(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.MpcParty/GetParty",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MpcPartyServer).GetParty(ctx, req.(*GetPartyParams))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -230,6 +262,10 @@ var MpcParty_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "KeygenGenerator",
 			Handler:    _MpcParty_KeygenGenerator_Handler,
+		},
+		{
+			MethodName: "GetParty",
+			Handler:    _MpcParty_GetParty_Handler,
 		},
 		{
 			MethodName: "GetParties",

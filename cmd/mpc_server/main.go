@@ -15,6 +15,7 @@ import (
 	zerolog "github.com/rs/zerolog/log"
 	"github.com/thoas/go-funk"
 	"net/http"
+	"strconv"
 )
 
 var logger = zerolog.Logger
@@ -67,8 +68,8 @@ func createNetOperation(port int64, cfg *config.Config, accessToken string) {
 			return echo.NewHTTPError(http.StatusBadRequest, "message is not hex")
 		}
 
-		parties, err := grpcclient.CallClientGRPCs(cfg.Server.Clients, func(client pb.MpcPartyClient, i int) (*pb.GetPartiesResponse, error) {
-			return client.GetParties(ctx, &pb.GetPartiesParams{Pubkey: pubkey})
+		parties, err := grpcclient.CallClientGRPCs(cfg.Server.Clients, func(client pb.MpcPartyClient, i int) (*pb.GetPartyResponse, error) {
+			return client.GetParty(ctx, &pb.GetPartyParams{Pubkey: pubkey})
 		})
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
@@ -129,10 +130,10 @@ func createNetOperation(port int64, cfg *config.Config, accessToken string) {
 		})
 	})
 
-	e.GET("/get-parties/:pubkey", func(c echo.Context) error {
+	e.GET("/get-party/:pubkey", func(c echo.Context) error {
 		pubkey := c.Param("pubkey")
-		parties, err := grpcclient.CallClientGRPCs(cfg.Server.Clients, func(client pb.MpcPartyClient, i int) (*pb.GetPartiesResponse, error) {
-			return client.GetParties(ctx, &pb.GetPartiesParams{Pubkey: pubkey})
+		parties, err := grpcclient.CallClientGRPCs(cfg.Server.Clients, func(client pb.MpcPartyClient, i int) (*pb.GetPartyResponse, error) {
+			return client.GetParty(ctx, &pb.GetPartyParams{Pubkey: pubkey})
 		})
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
@@ -140,9 +141,28 @@ func createNetOperation(port int64, cfg *config.Config, accessToken string) {
 
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"message": "Hello, World!",
-			"parties": funk.Filter(parties, func(p *pb.GetPartiesResponse) bool {
+			"parties": funk.Filter(parties, func(p *pb.GetPartyResponse) bool {
 				return p != nil
 			}),
+		})
+	})
+
+	e.GET("/get-parties/:clientIndex", func(c echo.Context) error {
+		clientIndexParam := c.Param("clientIndex")
+		clientIndex, err := strconv.Atoi(clientIndexParam)
+		if clientIndex-1 > len(cfg.Server.Clients) {
+			return echo.NewHTTPError(http.StatusBadRequest, "clientIndex is invalid")
+		}
+		parties, err := grpcclient.CallClientGRPC(cfg.Server.Clients[clientIndex], func(client pb.MpcPartyClient) (*pb.GetPartiesResponse, error) {
+			return client.GetParties(ctx, &pb.GetPartiesParams{})
+		})
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
+
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"message": "Hello, World!",
+			"parties": parties,
 		})
 	})
 

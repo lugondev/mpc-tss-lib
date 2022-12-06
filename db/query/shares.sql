@@ -28,7 +28,6 @@ WHERE LOWER(pubkey) = LOWER(sqlc.arg('pubkey'))
 LIMIT 1;
 
 -- name: ListShare :many
-SELECT pubkey, enable, notification, address
+SELECT pubkey, enable, notification, address, party_id
 FROM shares
-ORDER BY id
-LIMIT $1 OFFSET $2;
+ORDER BY id;

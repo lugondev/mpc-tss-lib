@@ -12,6 +12,7 @@ import (
 	"github.com/lugondev/mpc-tss-lib/pkg/mpc/networking/client"
 	"github.com/lugondev/mpc-tss-lib/pkg/mpc/tss_wrap"
 	zerolog "github.com/rs/zerolog/log"
+	"github.com/thoas/go-funk"
 	"google.golang.org/grpc"
 	"net"
 	"time"
@@ -49,16 +50,35 @@ func (s *grpcClient) KeygenGenerator(_ context.Context, keygenRequest *pb.Keygen
 	}, nil
 }
 
-func (s *grpcClient) GetParties(ctx context.Context, getPartiesParams *pb.GetPartiesParams) (*pb.GetPartiesResponse, error) {
-	logger.Info().Msg("GetParties called")
+func (s *grpcClient) GetParty(ctx context.Context, getPartiesParams *pb.GetPartyParams) (*pb.GetPartyResponse, error) {
+	logger.Info().Msg("GetParty called")
 	share, err := s.sqlStore.GetPartyIdByPubkey(ctx, getPartiesParams.Pubkey)
 	if err != nil {
 		logger.Error().Err(err).Msgf("can't get party id by pubkey: %s", getPartiesParams.Pubkey)
 		return nil, err
 	}
-	return &pb.GetPartiesResponse{
+	return &pb.GetPartyResponse{
 		Id:     share.PartyID,
 		Pubkey: share.Pubkey,
+	}, nil
+}
+
+func (s *grpcClient) GetParties(ctx context.Context, _ *pb.GetPartiesParams) (*pb.GetPartiesResponse, error) {
+	logger.Info().Msg("GetParties called")
+	shares, err := s.sqlStore.ListShare(ctx)
+	if err != nil {
+		logger.Error().Err(err).Msgf("can't get parties")
+		return nil, err
+	}
+
+	return &pb.GetPartiesResponse{
+		Shares: funk.Map(shares, func(share sqlc.ListShareRow) *pb.PartyShare {
+			return &pb.PartyShare{
+				Pubkey:  share.Pubkey,
+				Address: share.Address,
+				PartyId: share.PartyID,
+			}
+		}).([]*pb.PartyShare),
 	}, nil
 }
 

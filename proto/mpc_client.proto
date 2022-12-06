@@ -7,6 +7,7 @@ package pb;
 service MpcParty {
   rpc RequestParty(EmptyParams) returns (RequestPartyResponse){}
   rpc KeygenGenerator(KeygenGeneratorParams) returns (KeygenGeneratorResponse){}
+  rpc GetParty(GetPartyParams) returns (GetPartyResponse){}
   rpc GetParties(GetPartiesParams) returns (GetPartiesResponse){}
   rpc Sign(SignParams) returns (SignResponse){}
   rpc Ping (EmptyParams) returns (Pong) {}
@@ -18,13 +19,26 @@ message EmptyParams {
 message ReplyEmpty {
 }
 
-message GetPartiesParams {
+message GetPartyParams {
   string pubkey = 1;
 }
 
-message GetPartiesResponse {
+message GetPartyResponse {
   string id = 1;
   string pubkey = 2;
+}
+
+message PartyShare {
+  string pubkey = 1;
+  string address = 2;
+  string partyId = 3;
+}
+
+message GetPartiesParams {
+}
+
+message GetPartiesResponse {
+  repeated PartyShare shares = 1;
 }
 
 message SignParams {

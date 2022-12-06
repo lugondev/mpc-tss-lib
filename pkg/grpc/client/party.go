@@ -44,8 +44,33 @@ func CreateClientConnections(clients []string) []*grpc.ClientConn {
 	}).([]*grpc.ClientConn)
 }
 
-func GetPartyIDs(parties []*pb.GetPartiesResponse) []string {
-	return funk.Map(parties, func(party *pb.GetPartiesResponse) string {
+func CreateClientConnection(clientHost string) *grpc.ClientConn {
+	systemRoots, err := x509.SystemCertPool()
+	if err != nil {
+		logger.Error().Err(err).Msg("failed to load system roots")
+		return nil
+	}
+	cred := credentials.NewTLS(&tls.Config{
+		RootCAs: systemRoots,
+	})
+	var opts []grpc.DialOption
+	opts = append(opts, grpc.WithTransportCredentials(cred))
+	grpcOpts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
+	if !strings.Contains(clientHost, "localhost") &&
+		!strings.Contains(clientHost, "0.0.0.0") &&
+		!strings.Contains(clientHost, "127.0.0.1") {
+		grpcOpts = opts
+	}
+	conn, err := grpc.Dial(clientHost, grpcOpts...)
+	if err != nil {
+		logger.Error().Err(err).Msgf("failed to connect: %s", clientHost)
+		return nil
+	}
+	return conn
+}
+
+func GetPartyIDs(parties []*pb.GetPartyResponse) []string {
+	return funk.Map(parties, func(party *pb.GetPartyResponse) string {
 		return party.Id
 	}).([]string)
 }
@@ -110,4 +135,17 @@ func CallClientGRPCs[K comparable](clients []string, callToClient func(pb.MpcPar
 	}
 	wg.Wait()
 	return results, nil
+}
+
+func CallClientGRPC[K comparable](clientHost string, callToClient func(pb.MpcPartyClient) (K, error)) (K, error) {
+	connection := CreateClientConnection(clientHost)
+	if connection == nil {
+		return *new(K), errors.New("failed to connect to client")
+	}
+	defer func() {
+		_ = connection.Close()
+	}()
+
+	client := pb.NewMpcPartyClient(connection)
+	return callToClient(client)
 }

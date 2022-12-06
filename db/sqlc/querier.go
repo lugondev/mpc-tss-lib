@@ -21,7 +21,7 @@ type Querier interface {
 	GetShareByID(ctx context.Context, partyID string) (GetShareByIDRow, error)
 	ListChains(ctx context.Context) ([]Chain, error)
 	ListEmails(ctx context.Context, arg ListEmailsParams) ([]Email, error)
-	ListShare(ctx context.Context, arg ListShareParams) ([]ListShareRow, error)
+	ListShare(ctx context.Context) ([]ListShareRow, error)
 	UpdateEmail(ctx context.Context, arg UpdateEmailParams) (Email, error)
 }
 
