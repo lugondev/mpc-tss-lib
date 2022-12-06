@@ -25,7 +25,8 @@ message GetPartyParams {
 
 message GetPartyResponse {
   string id = 1;
-  string pubkey = 2;
+  string address = 2;
+  string pubkey = 3;
 }
 
 message PartyShare {

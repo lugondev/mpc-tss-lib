@@ -49,7 +49,7 @@ func (q *Queries) CreateShare(ctx context.Context, arg CreateShareParams) (Creat
 }
 
 const getPartyIdByPubkey = `-- name: GetPartyIdByPubkey :one
-SELECT pubkey, party_id
+SELECT pubkey, party_id, address
 FROM shares
 WHERE LOWER(pubkey) = LOWER($1)
 LIMIT 1
@@ -58,12 +58,13 @@ LIMIT 1
 type GetPartyIdByPubkeyRow struct {
 	Pubkey  string `json:"pubkey"`
 	PartyID string `json:"party_id"`
+	Address string `json:"address"`
 }
 
 func (q *Queries) GetPartyIdByPubkey(ctx context.Context, pubkey string) (GetPartyIdByPubkeyRow, error) {
 	row := q.db.QueryRowContext(ctx, getPartyIdByPubkey, pubkey)
 	var i GetPartyIdByPubkeyRow
-	err := row.Scan(&i.Pubkey, &i.PartyID)
+	err := row.Scan(&i.Pubkey, &i.PartyID, &i.Address)
 	return i, err
 }
 

@@ -77,7 +77,11 @@ func createNetOperation(port int64, cfg *config.Config, accessToken string) {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 		partyIDs := grpcclient.GetPartyIDs(parties)
-
+		for _, partyID := range partyIDs {
+			if netOperation.IsClientConnected(partyID) {
+				return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("client %s is already connected", partyID))
+			}
+		}
 		go func() {
 			logger.Info().Msgf("start operation: %v", partyIDs)
 			if err := netOperation.StartOperation(ctx, partyIDs); err != nil {

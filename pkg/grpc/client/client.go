@@ -58,8 +58,9 @@ func (s *grpcClient) GetParty(ctx context.Context, getPartiesParams *pb.GetParty
 		return nil, err
 	}
 	return &pb.GetPartyResponse{
-		Id:     share.PartyID,
-		Pubkey: share.Pubkey,
+		Id:      share.PartyID,
+		Pubkey:  share.Pubkey,
+		Address: share.Address,
 	}, nil
 }
 

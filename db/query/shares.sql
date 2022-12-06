@@ -22,7 +22,7 @@ WHERE party_id = $1
 LIMIT 1;
 
 -- name: GetPartyIdByPubkey :one
-SELECT pubkey, party_id
+SELECT pubkey, party_id, address
 FROM shares
 WHERE LOWER(pubkey) = LOWER(sqlc.arg('pubkey'))
 LIMIT 1;

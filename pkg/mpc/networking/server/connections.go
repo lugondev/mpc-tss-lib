@@ -82,6 +82,21 @@ func (s *Server) clientConnected(id string, conn *common.Conn) error {
 
 }
 
+func (s *Server) IsClientConnected(id string) bool {
+	s.Lock()
+	defer s.Unlock()
+
+	oldConn, ok := s.connections[id]
+	if !ok {
+		return false
+	}
+	if oldConn != nil {
+		return true
+	}
+
+	return false
+}
+
 func (s *Server) isAllConnected() bool {
 	s.Lock()
 	defer s.Unlock()
