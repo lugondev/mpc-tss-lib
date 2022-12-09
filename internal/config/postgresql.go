@@ -4,11 +4,31 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/lib/pq"
-	"github.com/lugondev/mpc-tss-lib/db"
+	dbClient "github.com/lugondev/mpc-tss-lib/db/client"
+	dbGateway "github.com/lugondev/mpc-tss-lib/db/gateway"
+	"github.com/rs/zerolog"
 	"time"
 )
 
-func NewDB(postgresConfig PostgresConfig) (*db.SQLStore, error) {
+func NewClientDB(postgresConfig PostgresConfig, logger *zerolog.Logger) (*dbClient.SQLStore, error) {
+	openDB, err := newDB(postgresConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return dbClient.NewStore(openDB, logger), nil
+}
+
+func NewGatewayDB(postgresConfig PostgresConfig, logger *zerolog.Logger) (*dbGateway.SQLStore, error) {
+	openDB, err := newDB(postgresConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return dbGateway.NewStore(openDB, logger), nil
+}
+
+func newDB(postgresConfig PostgresConfig) (*sql.DB, error) {
 	dsn := getDSN(postgresConfig)
 	openDB, err := sql.Open("postgres", dsn)
 	if err != nil {
@@ -20,7 +40,7 @@ func NewDB(postgresConfig PostgresConfig) (*db.SQLStore, error) {
 	openDB.SetMaxIdleConns(postgresConfig.MaxIdleConnections)
 	openDB.SetMaxOpenConns(postgresConfig.MaxOpenConnections)
 
-	return db.NewStore(openDB), nil
+	return openDB, nil
 }
 
 func getDSN(configuration PostgresConfig) string {

@@ -1,9 +1,9 @@
 version: "1"
 packages:
-  - name: "db"
-    path: "./db/sqlc"
-    queries: "./db/query/"
-    schema: "./db/migration/"
+  - name: "db_gateway"
+    path: "./db/gateway/sqlc"
+    queries: "./db/gateway/query/"
+    schema: "./db/gateway/migration/"
     engine: "postgresql"
     emit_json_tags: true
     emit_interface: true

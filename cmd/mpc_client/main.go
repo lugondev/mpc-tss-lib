@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"github.com/lugondev/mpc-tss-lib/internal/config"
 	grpc_client "github.com/lugondev/mpc-tss-lib/pkg/grpc/client"
+	zerolog "github.com/rs/zerolog/log"
 	"log"
 )
+
+var logger = zerolog.Logger
 
 func main() {
 	flagConfigPath := flag.String("config", "configuration.yml", "config yml path file")
@@ -23,7 +26,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	sqlStore, err := config.NewDB(cfg.DB.Postgresql)
+
+	sqlStore, err := config.NewClientDB(cfg.DB.Postgresql, &logger)
 	if err != nil {
 		log.Fatal(err)
 	}

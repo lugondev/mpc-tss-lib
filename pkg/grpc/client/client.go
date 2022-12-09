@@ -6,8 +6,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/uuid"
-	"github.com/lugondev/mpc-tss-lib/db"
-	sqlc "github.com/lugondev/mpc-tss-lib/db/sqlc"
+	dbClient "github.com/lugondev/mpc-tss-lib/db/client"
+	sqlc "github.com/lugondev/mpc-tss-lib/db/client/sqlc"
 	"github.com/lugondev/mpc-tss-lib/pb"
 	"github.com/lugondev/mpc-tss-lib/pkg/mpc/networking/client"
 	"github.com/lugondev/mpc-tss-lib/pkg/mpc/tss_wrap"
@@ -26,7 +26,7 @@ type grpcClient struct {
 	pb.MpcPartyServer
 
 	hostUrl  string
-	sqlStore *db.SQLStore
+	sqlStore *dbClient.SQLStore
 }
 
 func (s *grpcClient) RequestParty(_ context.Context, _ *pb.EmptyParams) (*pb.RequestPartyResponse, error) {
@@ -41,7 +41,7 @@ func (s *grpcClient) Ping(_ context.Context, _ *pb.EmptyParams) (*pb.Pong, error
 
 func (s *grpcClient) KeygenGenerator(_ context.Context, keygenRequest *pb.KeygenGeneratorParams) (*pb.KeygenGeneratorResponse, error) {
 	logger.Info().Msg("KeygenGenerator called")
-	pubkey, err := keygen(s.hostUrl, "", keygenRequest.Id, keygenRequest.Ids, len(keygenRequest.Ids), s.sqlStore)
+	pubkey, err := s.keygen(s.hostUrl, "", keygenRequest.Id, keygenRequest.Ids, len(keygenRequest.Ids))
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (s *grpcClient) GetParties(ctx context.Context, _ *pb.GetPartiesParams) (*p
 
 func (s *grpcClient) Sign(_ context.Context, signParams *pb.SignParams) (*pb.SignResponse, error) {
 	logger.Info().Msg("Sign called")
-	signature, err := sign(s.hostUrl, "", signParams, s.sqlStore)
+	signature, err := s.sign(s.hostUrl, "", signParams)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (s *grpcClient) Sign(_ context.Context, signParams *pb.SignParams) (*pb.Sig
 	}, nil
 }
 
-func StartGrpcClient(port int64, hostUrl string, sqlStore *db.SQLStore) {
+func StartGrpcClient(port int64, hostUrl string, sqlStore *dbClient.SQLStore) {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to listen")
@@ -114,14 +114,18 @@ func StartGrpcClient(port int64, hostUrl string, sqlStore *db.SQLStore) {
 	}
 }
 
-func keygen(hostURL, accessToken string, id string, partyIDs []string, threshold int, dbStore *db.SQLStore) (string, error) {
+func (s *grpcClient) keygen(hostURL, accessToken string, id string, partyIDs []string, threshold int) (string, error) {
 	mpcc := tss_wrap.NewMpc(id, threshold, &logger)
 	netOperation := client.NewClient(mpcc, hostURL, accessToken, &logger)
-	ctx, _ := context.WithTimeout(context.Background(), ContextTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), ContextTimeout)
+	defer func() {
+		cancel()
+		logger.Info().Msg("keygen context canceled")
+	}()
 	if err := netOperation.Keygen(ctx, partyIDs); err != nil {
 		return "", err
 	}
-	err := saveShare(id, mpcc, dbStore)
+	err := s.saveShare(id, mpcc)
 	if err != nil {
 		return "", err
 	}
@@ -133,7 +137,7 @@ func keygen(hostURL, accessToken string, id string, partyIDs []string, threshold
 	}
 }
 
-func saveShare(id string, tss *tss_wrap.Mpc, dbStore *db.SQLStore) error {
+func (s *grpcClient) saveShare(id string, tss *tss_wrap.Mpc) error {
 	share, err := tss.Share()
 	if err != nil {
 		logger.Error().Err(err).Msgf("can't save share: %s", id)
@@ -141,7 +145,7 @@ func saveShare(id string, tss *tss_wrap.Mpc, dbStore *db.SQLStore) error {
 	}
 	sharePubkey, err := tss.GetPublicKey()
 	addressFromPubKey, _ := tss.GetAddress()
-	_, err = dbStore.CreateShare(context.Background(), sqlc.CreateShareParams{
+	_, err = s.sqlStore.CreateShare(context.Background(), sqlc.CreateShareParams{
 		Pubkey:  common.Bytes2Hex(crypto.CompressPubkey(sharePubkey)),
 		Data:    share,
 		Address: addressFromPubKey.String(),
@@ -154,8 +158,8 @@ func saveShare(id string, tss *tss_wrap.Mpc, dbStore *db.SQLStore) error {
 	return nil
 }
 
-func sign(hostURL, accessToken string, signParam *pb.SignParams, dbStore *db.SQLStore) ([]byte, error) {
-	share, err := getShareData(signParam.Id, dbStore)
+func (s *grpcClient) sign(hostURL, accessToken string, signParam *pb.SignParams) ([]byte, error) {
+	share, err := s.getShareData(signParam.Id)
 	if err != nil {
 		logger.Error().Err(err).Msgf("can't get share: %s", signParam.Id)
 		return nil, err
@@ -169,14 +173,18 @@ func sign(hostURL, accessToken string, signParam *pb.SignParams, dbStore *db.SQL
 	fmt.Println("address: ", crypto.PubkeyToAddress(*publicKey).Hex())
 
 	netOperation := client.NewClient(mpcc, hostURL, accessToken, &logger)
-	ctx, _ := context.WithTimeout(context.Background(), ContextTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), ContextTimeout)
+	defer func() {
+		cancel()
+		logger.Info().Msg("sign context canceled")
+	}()
 	fmt.Println("msg:", common.Bytes2Hex(signParam.Message))
 
 	return netOperation.Sign(ctx, signParam.Parties, signParam.Message)
 }
 
-func getShareData(id string, dbStore *db.SQLStore) ([]byte, error) {
-	if share, err := dbStore.GetShareByID(context.Background(), id); err != nil {
+func (s *grpcClient) getShareData(id string) ([]byte, error) {
+	if share, err := s.sqlStore.GetShareByID(context.Background(), id); err != nil {
 		return nil, err
 	} else {
 		return share.Data, nil

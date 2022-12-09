@@ -49,9 +49,15 @@ type GrpcConfig struct {
 	Port int64
 }
 
+type RabbitConfig struct {
+	Url     string `yml:",omitempty"`
+	Timeout int64  `yml:",omitempty"`
+}
+
 type Config struct {
 	DB         DBConfig     `yml:"db"`
 	AuthConfig AuthConfig   `yml:"auth"`
 	Server     ServerConfig `yml:"server"`
 	Grpc       GrpcConfig   `yml:"grpc"`
+	RabbitMQ   RabbitConfig `yml:"rabbitmq"`
 }

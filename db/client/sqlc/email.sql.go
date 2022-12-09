@@ -3,7 +3,7 @@
 //   sqlc v1.15.0
 // source: email.sql
 
-package db
+package db_client
 
 import (
 	"context"

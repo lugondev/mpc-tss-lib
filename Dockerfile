@@ -10,7 +10,7 @@ WORKDIR /app
 # Copy the binary to the production image from the builder stage.
 COPY ./config ./config
 COPY ./configuration.yml ./configuration.yml
-#COPY ./build/mpc_server ./server
+#COPY ./build/mpc_gateway ./server
 COPY ./build/mpc_client ./server
 
 ENV MPC_DB_PROFILE postgresql.primary
