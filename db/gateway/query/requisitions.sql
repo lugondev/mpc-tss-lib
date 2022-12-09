@@ -16,16 +16,20 @@ WHERE tenant = $1
 
 -- name: UpdateRequisition :exec
 UPDATE requisitions
-SET reasons    = $1,
-    status     = $2,
-    data       = $3,
+SET reasons    = $2,
+    status     = $3,
+    data       = (
+        case
+            when length(sqlc.arg('data')::bytea) = 0 OR sqlc.arg('data') is null then data
+            else sqlc.arg('data') end
+        ),
     pubkey     = (
         case
             when sqlc.arg('pubkey') = '' OR sqlc.arg('pubkey') is null then pubkey
             else sqlc.arg('pubkey') end
         ),
     updated_at = NOW()
-WHERE requisition = $4;
+WHERE requisition = $1;
 
 -- name: FailRequisition :exec
 UPDATE requisitions

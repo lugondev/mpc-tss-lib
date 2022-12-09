@@ -94,7 +94,7 @@ func CallPartiesGRPCs[K comparable](clients []string, parties []string, callToCl
 			client := pb.NewMpcPartyClient(conn)
 			r, err := callToClient(client, parties, index)
 			if err == nil {
-				logger.Debug().Msgf("result: %v", r)
+				logger.Debug().Msgf("party: %v", r)
 				results = append(results, r)
 			} else {
 				logger.Error().Err(err).Msgf("failed to call party %d", index)

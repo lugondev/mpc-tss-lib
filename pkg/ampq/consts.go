@@ -1,8 +1,8 @@
 package rabbitmq
 
 const (
-	TopicSign = "sub_sign_event"
+	TopicMint = "sub_mint_event"
 )
 const (
-	ExchangeSign = "sign_event"
+	ExchangeMint = "mint_event"
 )

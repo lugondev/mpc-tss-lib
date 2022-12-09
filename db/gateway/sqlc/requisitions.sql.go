@@ -209,32 +209,36 @@ func (q *Queries) RetryRequisition(ctx context.Context, requisition string) erro
 
 const updateRequisition = `-- name: UpdateRequisition :exec
 UPDATE requisitions
-SET reasons    = $1,
-    status     = $2,
-    data       = $3,
+SET reasons    = $2,
+    status     = $3,
+    data       = (
+        case
+            when length($4::bytea) = 0 OR $4 is null then data
+            else $4 end
+        ),
     pubkey     = (
         case
             when $5 = '' OR $5 is null then pubkey
             else $5 end
         ),
     updated_at = NOW()
-WHERE requisition = $4
+WHERE requisition = $1
 `
 
 type UpdateRequisitionParams struct {
+	Requisition string            `json:"requisition"`
 	Reasons     string            `json:"reasons"`
 	Status      RequisitionStatus `json:"status"`
 	Data        []byte            `json:"data"`
-	Requisition string            `json:"requisition"`
 	Pubkey      interface{}       `json:"pubkey"`
 }
 
 func (q *Queries) UpdateRequisition(ctx context.Context, arg UpdateRequisitionParams) error {
 	_, err := q.db.ExecContext(ctx, updateRequisition,
+		arg.Requisition,
 		arg.Reasons,
 		arg.Status,
 		arg.Data,
-		arg.Requisition,
 		arg.Pubkey,
 	)
 	return err

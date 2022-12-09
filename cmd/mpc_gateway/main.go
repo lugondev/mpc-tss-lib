@@ -3,9 +3,12 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -14,10 +17,13 @@ import (
 	"github.com/lugondev/mpc-tss-lib/internal/config"
 	"github.com/lugondev/mpc-tss-lib/pb"
 	rabbitmq "github.com/lugondev/mpc-tss-lib/pkg/ampq"
+	"github.com/lugondev/mpc-tss-lib/pkg/eth"
 	grpcclient "github.com/lugondev/mpc-tss-lib/pkg/grpc/client"
 	"github.com/lugondev/mpc-tss-lib/pkg/mpc/networking/server"
+	amqp "github.com/rabbitmq/amqp091-go"
 	zerolog "github.com/rs/zerolog/log"
 	"github.com/thoas/go-funk"
+	"math/big"
 	"net/http"
 	"os"
 	"os/signal"
@@ -66,12 +72,46 @@ func createNetOperation(cfg *config.Config, dbStore *dbGateway.SQLStore, accessT
 		AllowMethods: []string{http.MethodGet, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete},
 	}))
 
-	mqSign := rabbitmq.InitMqClient(&cfg.RabbitMQ, rabbitmq.ExchangeSign, rabbitmq.TopicSign)
-	go mqSign.Subscribe(false)
-	go ProcessEvent(mqSign, dbStore)
+	mqMint := rabbitmq.InitMqClient(&cfg.RabbitMQ, rabbitmq.ExchangeMint, rabbitmq.TopicMint)
+	go mqMint.Subscribe(false)
 
 	//ctx, _ := context.WithTimeout(context.Background(), 1*time.Minute)
 	ctx := context.Background()
+	go ProcessEvent(ctx, cfg, mqMint, dbStore, netOperation)
+
+	e.POST("/mint", func(c echo.Context) error {
+		var mintRequest eth.MintData
+
+		if err := c.Bind(&mintRequest); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
+		if mintRequest.Receiver == common.HexToAddress("0x") {
+			return echo.NewHTTPError(http.StatusBadRequest, "receiver is empty or invalid")
+		}
+
+		if _, err := eth.AddressFromPubkey(mintRequest.Pubkey); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "pubkey is invalid or empty")
+		}
+
+		mintRequest.TokenId = time.Now().UnixNano()
+		dataBytes, _ := json.Marshal(mintRequest)
+		requisitionCreated, err := dbStore.CreateRequisition(ctx, dbgateway.InsertRequisitionParams{
+			Data:   dataBytes,
+			Pubkey: mintRequest.Pubkey,
+		}, dbGateway.RequisitionSign)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("failed to create requisition: %s", err.Error()))
+		}
+
+		mqMint.Publish([]byte(requisitionCreated.Requisition), strconv.Itoa(time.Now().Nanosecond()))
+
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"message":       MessageResponse,
+			"pubkey":        mintRequest.Pubkey,
+			"requisitionId": requisitionCreated.Requisition,
+		})
+	})
+
 	e.POST("/sign/:pubkey", func(c echo.Context) error {
 		pubkey := c.Param("pubkey")
 		var body struct{ Message string }
@@ -286,7 +326,7 @@ func createNetOperation(cfg *config.Config, dbStore *dbGateway.SQLStore, accessT
 	})
 
 	e.GET("/rabbitmq", func(c echo.Context) error {
-		mqSign.Publish([]byte("{\"name\":\"Lugon\"}"), strconv.Itoa(time.Now().Second()))
+		mqMint.Publish([]byte("{\"name\":\"Lugon\"}"), strconv.Itoa(time.Now().Second()))
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"message": MessageResponse,
 		})
@@ -302,7 +342,21 @@ func createNetOperation(cfg *config.Config, dbStore *dbGateway.SQLStore, accessT
 	}
 }
 
-func ProcessEvent(mq *rabbitmq.BridgeMQ, dbStore *dbGateway.SQLStore) {
+func ackMsg(msg amqp.Delivery) {
+	logger.Info().Msgf("ack msg: %s", string(msg.Body))
+	if err := msg.Ack(false); err != nil {
+		logger.Error().Err(err).Msg("failed to ack message")
+	}
+}
+
+func nackMsg(msg amqp.Delivery, requeue bool) {
+	logger.Info().Msgf("nack msg: %s requeue: %b", string(msg.Body), requeue)
+	if err := msg.Nack(false, requeue); err != nil {
+		logger.Error().Err(err).Msg("failed to nack message")
+	}
+}
+
+func ProcessEvent(ctx context.Context, cfg *config.Config, mq *rabbitmq.BridgeMQ, dbStore *dbGateway.SQLStore, netOperation *server.Server) {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGTERM)
 
@@ -311,25 +365,110 @@ func ProcessEvent(mq *rabbitmq.BridgeMQ, dbStore *dbGateway.SQLStore) {
 		case msg := <-mq.MsgCh:
 			if len(msg.Body) > 0 {
 				logger.Info().Msgf("Received a message: %s", string(msg.Body))
-				//if success {
-				//	msg.Ack(false)
-				//} else {
-				//	tryTimesDemo++
-				//	logger.Debug().Msgf("tryTimesDemo %d", tryTimesDemo)
-				//	msg.Nack(false, tryTimesDemo < 5)
-				//}
-				retryTimes, err := dbStore.GetRetryTimes(context.Background(), string(msg.Body))
+				requisition, err := dbStore.GetRequisition(ctx, string(msg.Body))
 				if err != nil {
-					logger.Error().Err(err).Msgf("failed to GetRetryTimes: %s", string(msg.Body))
+					logger.Error().Err(err).Msgf("failed to GetRequisition: %s", string(msg.Body))
+					ackMsg(msg)
+					continue
+				}
+				logger.Info().Msgf("process requisition: %s times %d", requisition.Requisition, requisition.RetryTimes+1)
 
-					if err := msg.Ack(false); err != nil {
-						logger.Error().Err(err).Msgf("failed to Ack: %v", err)
+				var mintRequest eth.MintData
+				if err := json.Unmarshal(requisition.Data, &mintRequest); err != nil {
+					logger.Error().Err(err).Msgf("failed to Unmarshal: %s", string(msg.Body))
+					ackMsg(msg)
+					continue
+				}
+
+				parties, err := grpcclient.CallClientGRPCs(cfg.Server.Clients, func(client pb.MpcPartyClient, i int) (*pb.GetPartyResponse, error) {
+					return client.GetParty(ctx, &pb.GetPartyParams{Pubkey: mintRequest.Pubkey})
+				})
+				if err != nil {
+					logger.Error().Err(err).Msgf("failed to CallClientGRPCs: %s", string(msg.Body))
+					ackMsg(msg)
+					continue
+				}
+				partyIDs := grpcclient.GetPartyIDs(parties)
+				for _, partyID := range partyIDs {
+					if netOperation.IsClientConnected(partyID) {
+						logger.Error().Msg(fmt.Sprintf("client %s is already connected", partyID))
+						ackMsg(msg)
+						continue
 					}
-				} else {
-					logger.Debug().Msgf("retryTimes %d", retryTimes)
-					if err := msg.Nack(false, retryTimes < 5); err != nil {
-						logger.Error().Err(err).Msgf("failed to Nack: %v", err)
+				}
+				go func() {
+					logger.Info().Msgf("start operation: %v", partyIDs)
+					if err := netOperation.StartOperation(ctx, partyIDs); err != nil {
+						logger.Error().Err(err).Msg("failed to StartOperation")
+						ackMsg(msg)
 					}
+				}()
+
+				fromAddress, _ := eth.AddressFromPubkey(mintRequest.Pubkey)
+				mintTx, err := eth.SignMint(mintRequest, func(address common.Address, txn *types.Transaction) (*types.Transaction, error) {
+					//if requisition.RetryTimes < 3 {
+					//	return nil, errors.New(fmt.Sprintf("retry times is %d", requisition.RetryTimes))
+					//}
+					signer := types.LatestSignerForChainID(big.NewInt(80001))
+					txHash := signer.Hash(txn)
+					signatures, err := grpcclient.CallPartiesGRPCs(cfg.Server.Clients, partyIDs, func(client pb.MpcPartyClient, parties []string, i int) (*pb.SignResponse, error) {
+						return client.Sign(ctx, &pb.SignParams{
+							Id:      parties[i],
+							Parties: parties,
+							Message: txHash.Bytes(),
+							Pubkey:  mintRequest.Pubkey,
+						})
+					})
+					if err != nil {
+						return nil, err
+					}
+
+					sig := common.FromHex(funk.Map(signatures, func(sig *pb.SignResponse) string {
+						return sig.Signature
+					}).([]string)[0])
+
+					for j := 0; j < 2; j++ {
+						signedTxn, err := txn.WithSignature(signer, sig)
+						if err != nil {
+							logger.Error().Err(err).Msg("failed to WithSignature")
+							return nil, err
+						}
+						sender, err := types.Sender(signer, signedTxn)
+						if sender.String() == fromAddress.String() {
+							return signedTxn, nil
+						}
+						vPos := crypto.SignatureLength - 1
+						sig[vPos] ^= 0x1
+					}
+					return nil, errors.New("wrong sender address")
+				})
+				if err != nil {
+					logger.Error().Err(err).Msg("failed to SignMint")
+					if err := dbStore.UpdateRequisition(ctx, dbgateway.UpdateRequisitionParams{
+						Status:      "failure",
+						Reasons:     fmt.Sprintf("failed to SignMint: %s", err.Error()),
+						Requisition: requisition.Requisition,
+					}); err != nil {
+						logger.Error().Err(err).Msg("failed to UpdateRequisition")
+					}
+					if err := dbStore.RetryRequisition(ctx, requisition.Requisition); err != nil {
+						logger.Error().Err(err).Msg("failed to RetryRequisition")
+						ackMsg(msg)
+					}
+					logger.Info().Msgf("retry requisition: %s times %d", requisition.Requisition, requisition.RetryTimes)
+					nackMsg(msg, requisition.RetryTimes+1 < 5)
+					continue
+				}
+				ackMsg(msg)
+				logger.Info().Msgf("mintTx: %s", mintTx.Hash().String())
+				mintRequest.Tx = mintTx
+				dataBytes, _ := json.Marshal(mintRequest)
+				if err = dbStore.UpdateRequisition(ctx, dbgateway.UpdateRequisitionParams{
+					Status:      "success",
+					Data:        dataBytes,
+					Requisition: requisition.Requisition,
+				}); err != nil {
+					logger.Error().Err(err).Msg("failed to UpdateRequisition")
 				}
 			}
 		default:
